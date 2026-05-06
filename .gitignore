@@ -1,0 +1,6 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+env/**/.terraform/git 
+#.gitignore is needed because Git is designed to track code you write, not files that are generated automatically or are too large/temporary.
