@@ -9,14 +9,48 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+variables:
+  azureServiceConnection: 'my-azure-connection'
+
 stages:
-  - stage: terraform init-plan
-    displayName: terraform init-plan
-    jobs:
-      - job: init plan
-        steps:
-         - task: TerraformInstaller@1
-           displayName: "Install Terraform"
-           inputs:
-             terraformVersion: 'latest'
-          
+- stage: Prod
+  displayName: Deploy to PROD
+  jobs:
+  - job: Terraform_Prod
+    displayName: Terraform Plan + Apply (PROD)
+
+    steps:
+    - checkout: self
+
+    # ✅ Install Terraform
+    - task: TerraformInstaller@1
+      displayName: Install Terraform
+      inputs:
+        terraformVersion: 'latest'
+
+    # ✅ Terraform INIT
+    - task: TerraformTaskV4@4
+      displayName: Terraform Init (PROD)
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: 'env/prod'
+        backendServiceArm: '$(azureServiceConnection)'
+
+    # ✅ Terraform PLAN
+    - task: TerraformTaskV4@4
+      displayName: Terraform Plan (PROD)
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: 'env/prod'
+        environmentServiceNameAzureRM: '$(azureServiceConnection)'
+
+    # ✅ Terraform APPLY
+    - task: TerraformTaskV4@4
+      displayName: Terraform Apply (PROD)
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        workingDirectory: 'env/prod'
+        environmentServiceNameAzureRM: '$(azureServiceConnection)'
