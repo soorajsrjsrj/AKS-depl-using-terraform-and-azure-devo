@@ -2,12 +2,11 @@
 # Start with a minimal pipeline that you can customize to build and deploy your code.
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
-
 trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: ubuntu-latest   # ✅ keep this (or change to self-hosted later)
 
 variables:
   azureServiceConnection: 'my-azure-connection'
@@ -34,12 +33,13 @@ stages:
         command: 'init'
         workingDirectory: 'env/prod'
         backendServiceArm: '$(azureServiceConnection)'
+        backendType: 'selfConfigured'   # ✅ REQUIRED FIX
 
 # ✅ Stage 2: PLAN
 - stage: PLAN
   displayName: Terraform Plan (PROD)
   dependsOn: INIT
-  condition: succeeded()   # ✅ only run if INIT succeeds
+  condition: succeeded()
 
   jobs:
   - job: PlanJob
@@ -62,7 +62,7 @@ stages:
 - stage: APPLY
   displayName: Terraform Apply (PROD)
   dependsOn: PLAN
-  condition: succeeded()   # ✅ only run if PLAN succeeds
+  condition: succeeded()
 
   jobs:
   - job: ApplyJob
