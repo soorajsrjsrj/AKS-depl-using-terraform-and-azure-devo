@@ -1,12 +1,8 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
 trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest   # ✅ keep this (or change to self-hosted later)
+  vmImage: ubuntu-latest   # ✅ change to 'Default' if using self-hosted
 
 variables:
   azureServiceConnection: 'my-azure-connection'
@@ -16,6 +12,7 @@ stages:
 # ✅ Stage 1: INIT
 - stage: INIT
   displayName: Terraform Init (PROD)
+
   jobs:
   - job: InitJob
     steps:
@@ -26,14 +23,15 @@ stages:
       inputs:
         terraformVersion: 'latest'
 
-    - task: TerraformTaskV4@4
+    - task: AzureCLI@2
       displayName: Terraform Init
       inputs:
-        provider: 'azurerm'
-        command: 'init'
-        workingDirectory: 'env/prod'
-        backendServiceArm: '$(azureServiceConnection)'
-        backendType: 'selfConfigured'   # ✅ REQUIRED FIX
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd env/prod
+          terraform init
 
 # ✅ Stage 2: PLAN
 - stage: PLAN
@@ -50,13 +48,15 @@ stages:
       inputs:
         terraformVersion: 'latest'
 
-    - task: TerraformTaskV4@4
+    - task: AzureCLI@2
       displayName: Terraform Plan
       inputs:
-        provider: 'azurerm'
-        command: 'plan'
-        workingDirectory: 'env/prod'
-        environmentServiceNameAzureRM: '$(azureServiceConnection)'
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd env/prod
+          terraform plan -out=tfplan
 
 # ✅ Stage 3: APPLY
 - stage: APPLY
@@ -73,10 +73,12 @@ stages:
       inputs:
         terraformVersion: 'latest'
 
-    - task: TerraformTaskV4@4
+    - task: AzureCLI@2
       displayName: Terraform Apply
       inputs:
-        provider: 'azurerm'
-        command: 'apply'
-        workingDirectory: 'env/prod'
-        environmentServiceNameAzureRM: '$(azureServiceConnection)'
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd env/prod
+          terraform apply -auto-approve tfplan
