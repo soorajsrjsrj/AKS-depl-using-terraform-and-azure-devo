@@ -13,42 +13,68 @@ variables:
   azureServiceConnection: 'my-azure-connection'
 
 stages:
-- stage: Prod
-  displayName: Deploy to PROD
-  jobs:
-  - job: Terraform_Prod
-    displayName: Terraform Plan + Apply (PROD)
 
+# ✅ Stage 1: INIT
+- stage: INIT
+  displayName: Terraform Init (PROD)
+  jobs:
+  - job: InitJob
     steps:
     - checkout: self
 
-    # ✅ Install Terraform
     - task: TerraformInstaller@1
       displayName: Install Terraform
       inputs:
         terraformVersion: 'latest'
 
-    # ✅ Terraform INIT
     - task: TerraformTaskV4@4
-      displayName: Terraform Init (PROD)
+      displayName: Terraform Init
       inputs:
         provider: 'azurerm'
         command: 'init'
         workingDirectory: 'env/prod'
         backendServiceArm: '$(azureServiceConnection)'
 
-    # ✅ Terraform PLAN
+# ✅ Stage 2: PLAN
+- stage: PLAN
+  displayName: Terraform Plan (PROD)
+  dependsOn: INIT
+  condition: succeeded()   # ✅ only run if INIT succeeds
+
+  jobs:
+  - job: PlanJob
+    steps:
+    - checkout: self
+
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+
     - task: TerraformTaskV4@4
-      displayName: Terraform Plan (PROD)
+      displayName: Terraform Plan
       inputs:
         provider: 'azurerm'
         command: 'plan'
         workingDirectory: 'env/prod'
         environmentServiceNameAzureRM: '$(azureServiceConnection)'
 
-    # ✅ Terraform APPLY
+# ✅ Stage 3: APPLY
+- stage: APPLY
+  displayName: Terraform Apply (PROD)
+  dependsOn: PLAN
+  condition: succeeded()   # ✅ only run if PLAN succeeds
+
+  jobs:
+  - job: ApplyJob
+    steps:
+    - checkout: self
+
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+
     - task: TerraformTaskV4@4
-      displayName: Terraform Apply (PROD)
+      displayName: Terraform Apply
       inputs:
         provider: 'azurerm'
         command: 'apply'
