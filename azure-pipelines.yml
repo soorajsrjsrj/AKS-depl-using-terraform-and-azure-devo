@@ -8,12 +8,14 @@ variables:
   azureServiceConnection: 'myconnection2'
 
 stages:
+
 - stage: Terraform
   displayName: Terraform End-to-End (PROD)
 
   jobs:
   - job: TerraformJob
     displayName: Init + Plan + Apply
+
     steps:
 
     - checkout: self
@@ -24,7 +26,7 @@ stages:
       inputs:
         terraformVersion: 'latest'
 
-    # ✅ Run everything in one go
+    # ✅ Run Terraform
     - task: AzureCLI@2
       displayName: Terraform Init + Plan + Apply
       inputs:
@@ -38,7 +40,7 @@ stages:
           terraform init
 
           echo "===== PLAN ====="
-          terraform plan -out=tfplan -no-color
+          terraform plan -var-file="prod.tfvars" -no-color
 
           echo "===== APPLY ====="
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve -var-file="prod.tfvars"
