@@ -5,7 +5,7 @@ pool:
   vmImage: ubuntu-latest   # ✅ change to 'Default' if using self-hosted
 
 variables:
-  azureServiceConnection: 'my-azure-connection'
+  azureServiceConnection: 'myconnection2'
 
 stages:
 
