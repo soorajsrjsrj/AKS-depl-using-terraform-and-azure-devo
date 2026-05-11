@@ -2,19 +2,20 @@ trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest   # ✅ change to 'Default' if using self-hosted
+  vmImage: ubuntu-latest   # ✅ change to 'Default' if using self-hosted agent
 
 variables:
   azureServiceConnection: 'myconnection2'
 
 stages:
 
-# ✅ Stage 1: INIT
+# ✅ STAGE 1: INIT
 - stage: INIT
   displayName: Terraform Init (PROD)
 
   jobs:
   - job: InitJob
+    displayName: Init Job
     steps:
     - checkout: self
 
@@ -33,7 +34,8 @@ stages:
           cd env/prod
           terraform init
 
-# ✅ Stage 2: PLAN
+
+# ✅ STAGE 2: PLAN
 - stage: PLAN
   displayName: Terraform Plan (PROD)
   dependsOn: INIT
@@ -41,10 +43,12 @@ stages:
 
   jobs:
   - job: PlanJob
+    displayName: Plan Job
     steps:
     - checkout: self
 
     - task: TerraformInstaller@1
+      displayName: Install Terraform
       inputs:
         terraformVersion: 'latest'
 
@@ -56,9 +60,11 @@ stages:
         scriptLocation: 'inlineScript'
         inlineScript: |
           cd env/prod
+          terraform init              # ✅ REQUIRED (fix for your error)
           terraform plan -out=tfplan
 
-# ✅ Stage 3: APPLY
+
+# ✅ STAGE 3: APPLY
 - stage: APPLY
   displayName: Terraform Apply (PROD)
   dependsOn: PLAN
@@ -66,10 +72,12 @@ stages:
 
   jobs:
   - job: ApplyJob
+    displayName: Apply Job
     steps:
     - checkout: self
 
     - task: TerraformInstaller@1
+      displayName: Install Terraform
       inputs:
         terraformVersion: 'latest'
 
@@ -81,4 +89,3 @@ stages:
         scriptLocation: 'inlineScript'
         inlineScript: |
           cd env/prod
-          terraform apply -auto-approve tfplan
