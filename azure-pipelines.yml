@@ -9,26 +9,47 @@ variables:
 
 stages:
 
-- stage: Terraform
-  displayName: Terraform End-to-End (PROD)
+# ✅ STAGE 1: INIT
+- stage: INIT
+  displayName: Terraform Init (PROD)
 
   jobs:
-  - job: TerraformJob
-    displayName: Init + Plan + Apply
-
+  - job: InitJob
     steps:
-
     - checkout: self
 
-    # ✅ Install Terraform
     - task: TerraformInstaller@1
-      displayName: Install Terraform
       inputs:
         terraformVersion: 'latest'
 
-    # ✅ Run Terraform
     - task: AzureCLI@2
-      displayName: Terraform Init + Plan + Apply
+      displayName: Terraform Init
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd env/prod
+          terraform init
+
+
+# ✅ STAGE 2: PLAN
+- stage: PLAN
+  displayName: Terraform Plan (PROD)
+  dependsOn: INIT
+  condition: succeeded()
+
+  jobs:
+  - job: PlanJob
+    steps:
+    - checkout: self
+
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+
+    - task: AzureCLI@2
+      displayName: Terraform Plan
       inputs:
         azureSubscription: '$(azureServiceConnection)'
         scriptType: 'bash'
@@ -36,11 +57,39 @@ stages:
         inlineScript: |
           cd env/prod
 
-          echo "===== INIT ====="
+          echo "===== INIT (required again) ====="
           terraform init
 
           echo "===== PLAN ====="
           terraform plan -var-file="prod.tfvars" -no-color
+
+
+# ✅ STAGE 3: APPLY
+- stage: APPLY
+  displayName: Terraform Apply (PROD)
+  dependsOn: PLAN
+  condition: succeeded()
+
+  jobs:
+  - job: ApplyJob
+    steps:
+    - checkout: self
+
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+
+    - task: AzureCLI@2
+      displayName: Terraform Apply
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd env/prod
+
+          echo "===== INIT (required again) ====="
+          terraform init
 
           echo "===== APPLY ====="
           terraform apply -auto-approve -var-file="prod.tfvars"
