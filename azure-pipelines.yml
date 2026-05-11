@@ -2,90 +2,43 @@ trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest   # ✅ change to 'Default' if using self-hosted agent
+  vmImage: ubuntu-latest   # change to 'Default' if using self-hosted
 
 variables:
   azureServiceConnection: 'myconnection2'
 
 stages:
-
-# ✅ STAGE 1: INIT
-- stage: INIT
-  displayName: Terraform Init (PROD)
+- stage: Terraform
+  displayName: Terraform End-to-End (PROD)
 
   jobs:
-  - job: InitJob
-    displayName: Init Job
+  - job: TerraformJob
+    displayName: Init + Plan + Apply
     steps:
+
     - checkout: self
 
+    # ✅ Install Terraform
     - task: TerraformInstaller@1
       displayName: Install Terraform
       inputs:
         terraformVersion: 'latest'
 
+    # ✅ Run everything in one go
     - task: AzureCLI@2
-      displayName: Terraform Init
+      displayName: Terraform Init + Plan + Apply
       inputs:
         azureSubscription: '$(azureServiceConnection)'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
           cd env/prod
+
+          echo "===== INIT ====="
           terraform init
 
+          echo "===== PLAN ====="
+          terraform plan -out=tfplan -no-color
 
-# ✅ STAGE 2: PLAN
-- stage: PLAN
-  displayName: Terraform Plan (PROD)
-  dependsOn: INIT
-  condition: succeeded()
-
-  jobs:
-  - job: PlanJob
-    displayName: Plan Job
-    steps:
-    - checkout: self
-
-    - task: TerraformInstaller@1
-      displayName: Install Terraform
-      inputs:
-        terraformVersion: 'latest'
-
-    - task: AzureCLI@2
-      displayName: Terraform Plan
-      inputs:
-        azureSubscription: '$(azureServiceConnection)'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          cd env/prod
-          terraform init              # ✅ REQUIRED (fix for your error)
-          terraform plan -out=tfplan
-
-
-# ✅ STAGE 3: APPLY
-- stage: APPLY
-  displayName: Terraform Apply (PROD)
-  dependsOn: PLAN
-  condition: succeeded()
-
-  jobs:
-  - job: ApplyJob
-    displayName: Apply Job
-    steps:
-    - checkout: self
-
-    - task: TerraformInstaller@1
-      displayName: Install Terraform
-      inputs:
-        terraformVersion: 'latest'
-
-    - task: AzureCLI@2
-      displayName: Terraform Apply
-      inputs:
-        azureSubscription: '$(azureServiceConnection)'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          cd env/prod
+          echo "===== APPLY ====="
+          terraform apply -auto-approve tfplan
